@@ -247,6 +247,8 @@
 			<a href="https://docs.bsky.app/blog/jetstream" target="_blank" rel="noopener">Jetstream</a>
 			&middot;
 			<a href="https://atproto.com" target="_blank" rel="noopener">AT Protocol</a>
+			&middot;
+			<a href="https://github.com/jkup/atproto-health" target="_blank" rel="noopener">Source Code</a>
 		</p>
 	</footer>
 </div>
