@@ -72,8 +72,8 @@
 
 	<!-- Global Network Stats -->
 	<section class="section-title">
-		<h2>Network Totals</h2>
-		<span class="section-subtitle">All-time cumulative statistics</span>
+		<h2>Bluesky Network Totals</h2>
+		<span class="section-subtitle">All-time cumulative statistics from bsky-stats API</span>
 	</section>
 	<section class="network-stats">
 		<StatCard
@@ -104,33 +104,37 @@
 
 	<!-- Real-time Activity -->
 	<section class="section-title">
-		<h2>Live Activity</h2>
-		<span class="section-subtitle">Real-time events from the firehose</span>
+		<h2>Bluesky Records</h2>
+		<span class="section-subtitle">Real-time <code>app.bsky.*</code> records from Jetstream</span>
 	</section>
 	<section class="realtime-stats">
 		<StatCard
-			title="Posts/sec"
+			title="Post Records/sec"
 			value={$activityPerSecond.posts.toString()}
 			subtitle="New posts right now"
 			color="#22c55e"
+			collection="app.bsky.feed.post"
 		/>
 		<StatCard
-			title="Likes/sec"
+			title="Like Records/sec"
 			value={$activityPerSecond.likes.toString()}
 			subtitle="Likes happening now"
 			color="#ef4444"
+			collection="app.bsky.feed.like"
 		/>
 		<StatCard
-			title="Reposts/sec"
+			title="Repost Records/sec"
 			value={$activityPerSecond.reposts.toString()}
 			subtitle="Reposts right now"
 			color="#f59e0b"
+			collection="app.bsky.feed.repost"
 		/>
 		<StatCard
-			title="Follows/sec"
+			title="Follow Records/sec"
 			value={$activityPerSecond.follows.toString()}
 			subtitle="New follows right now"
 			color="#a855f7"
+			collection="app.bsky.graph.follow"
 		/>
 	</section>
 
@@ -146,8 +150,8 @@
 
 	<!-- Network Health -->
 	<section class="section-title">
-		<h2>Network Health</h2>
-		<span class="section-subtitle">User status and moderation stats</span>
+		<h2>Bluesky Moderation</h2>
+		<span class="section-subtitle">User status and block stats from ClearSky API</span>
 	</section>
 	<section class="health-stats">
 		<StatCard
@@ -195,8 +199,8 @@
 
 	<!-- Content Analysis -->
 	<section class="section-title">
-		<h2>Content Analysis</h2>
-		<span class="section-subtitle">Trends from the live firehose</span>
+		<h2>Bluesky Content Analysis</h2>
+		<span class="section-subtitle">Trends from <code>app.bsky.feed.post</code> records</span>
 	</section>
 	<section class="content-stats">
 		<div class="content-card">
@@ -328,6 +332,15 @@
 	.section-subtitle {
 		font-size: 0.75rem;
 		color: #64748b;
+	}
+
+	.section-subtitle code {
+		font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+		font-size: 0.7rem;
+		background: rgba(59, 130, 246, 0.15);
+		color: #60a5fa;
+		padding: 0.125rem 0.375rem;
+		border-radius: 4px;
 	}
 
 	.network-stats,

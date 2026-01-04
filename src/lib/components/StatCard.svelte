@@ -5,9 +5,10 @@
 		subtitle?: string;
 		color?: string;
 		icon?: string;
+		collection?: string;
 	}
 
-	let { title, value, subtitle = '', color = '#3b82f6', icon = '' }: Props = $props();
+	let { title, value, subtitle = '', color = '#3b82f6', icon = '', collection = '' }: Props = $props();
 </script>
 
 <div class="stat-card" style="--accent-color: {color}">
@@ -15,11 +16,17 @@
 		{#if icon}
 			<span class="stat-icon">{icon}</span>
 		{/if}
-		<span class="stat-title">{title}</span>
+		<span class="stat-title" title={collection}>{title}</span>
+		{#if collection}
+			<span class="collection-badge" title={collection}>bsky</span>
+		{/if}
 	</div>
 	<div class="stat-value">{value}</div>
 	{#if subtitle}
 		<div class="stat-subtitle">{subtitle}</div>
+	{/if}
+	{#if collection}
+		<div class="collection-hint">{collection}</div>
 	{/if}
 </div>
 
@@ -74,5 +81,26 @@
 		font-size: 0.75rem;
 		color: #64748b;
 		margin-top: 0.25rem;
+	}
+
+	.collection-badge {
+		font-size: 0.5rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		background: rgba(59, 130, 246, 0.2);
+		color: #60a5fa;
+		padding: 0.125rem 0.375rem;
+		border-radius: 4px;
+		cursor: help;
+	}
+
+	.collection-hint {
+		font-size: 0.625rem;
+		font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+		color: #475569;
+		margin-top: 0.5rem;
+		padding-top: 0.5rem;
+		border-top: 1px solid rgba(148, 163, 184, 0.1);
 	}
 </style>

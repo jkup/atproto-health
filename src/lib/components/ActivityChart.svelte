@@ -12,13 +12,20 @@
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
+		const collectionLabels: Record<string, string> = {
+			'Post': 'app.bsky.feed.post',
+			'Like': 'app.bsky.feed.like',
+			'Repost': 'app.bsky.feed.repost',
+			'Follow': 'app.bsky.graph.follow'
+		};
+
 		chart = new Chart(ctx, {
 			type: 'line',
 			data: {
 				labels: [],
 				datasets: [
 					{
-						label: 'Posts',
+						label: 'Post',
 						data: [],
 						borderColor: '#3b82f6',
 						backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -28,7 +35,7 @@
 						pointRadius: 0
 					},
 					{
-						label: 'Likes',
+						label: 'Like',
 						data: [],
 						borderColor: '#ef4444',
 						backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -38,7 +45,7 @@
 						pointRadius: 0
 					},
 					{
-						label: 'Reposts',
+						label: 'Repost',
 						data: [],
 						borderColor: '#22c55e',
 						backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -48,7 +55,7 @@
 						pointRadius: 0
 					},
 					{
-						label: 'Follows',
+						label: 'Follow',
 						data: [],
 						borderColor: '#a855f7',
 						backgroundColor: 'rgba(168, 85, 247, 0.1)',
@@ -87,7 +94,15 @@
 						borderWidth: 1,
 						padding: 12,
 						displayColors: true,
-						usePointStyle: true
+						usePointStyle: true,
+						callbacks: {
+							label: function(context) {
+								const label = context.dataset.label || '';
+								const collection = collectionLabels[label] || '';
+								const value = context.parsed.y;
+								return `${collection}: ${value}/sec`;
+							}
+						}
 					}
 				},
 				scales: {
@@ -134,7 +149,7 @@
 </script>
 
 <div class="chart-container">
-	<h3>Activity Over Time</h3>
+	<h3>Bluesky Record Activity <span class="chart-subtitle">app.bsky.* records/sec over time</span></h3>
 	<div class="chart-wrapper">
 		<canvas bind:this={canvas}></canvas>
 	</div>
@@ -153,6 +168,14 @@
 		font-weight: 600;
 		color: #f1f5f9;
 		margin: 0 0 1rem 0;
+	}
+
+	.chart-subtitle {
+		font-size: 0.7rem;
+		font-weight: 400;
+		color: #64748b;
+		font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+		margin-left: 0.5rem;
 	}
 
 	.chart-wrapper {
