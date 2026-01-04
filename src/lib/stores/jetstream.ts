@@ -37,7 +37,7 @@ interface StoreState {
 	activityPerSecond: ActivityStats;
 	activityTotal: ActivityStats;
 	contentStats: ContentStats;
-	recentPosts: Array<{ text: string; handle: string; time: Date }>;
+	recentPosts: Array<{ id: string; text: string; handle: string; time: Date }>;
 	eventsPerSecond: number;
 }
 
@@ -117,8 +117,10 @@ function createJetstreamStore() {
 						});
 
 						// Track recent posts (keep last 10)
+						// Use time_us + rkey for unique ID
+						const postId = `${event.time_us}-${event.commit?.rkey || Math.random()}`;
 						newState.recentPosts = [
-							{ text: record.text.slice(0, 100), handle: event.did.slice(-8), time: new Date() },
+							{ id: postId, text: record.text.slice(0, 100), handle: event.did.slice(-8), time: new Date() },
 							...state.recentPosts.slice(0, 9)
 						];
 					}

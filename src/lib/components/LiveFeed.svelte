@@ -22,7 +22,7 @@
 		{#if $recentPosts.length === 0}
 			<p class="empty-state">Waiting for posts...</p>
 		{:else}
-			{#each $recentPosts as post (post.time.getTime() + post.handle)}
+			{#each $recentPosts as post (post.id)}
 				<div class="feed-item">
 					<span class="feed-time">{formatTime(post.time)}</span>
 					<span class="feed-text">{post.text}{post.text.length >= 100 ? '...' : ''}</span>
