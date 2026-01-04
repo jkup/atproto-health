@@ -52,18 +52,18 @@
 </script>
 
 <svelte:head>
-	<title>AT Protocol Health Dashboard</title>
-	<meta name="description" content="Real-time health metrics for the AT Protocol ecosystem" />
+	<title>Bluesky Health Dashboard</title>
+	<meta name="description" content="Real-time health metrics for Bluesky" />
 </svelte:head>
 
 <div class="dashboard">
 	<header class="dashboard-header">
 		<div class="header-left">
 			<h1>
-				<span class="logo">AT</span>
-				Protocol Health
+				<span class="logo">🦋</span>
+				Bluesky Health
 			</h1>
-			<p class="subtitle">Real-time ecosystem metrics</p>
+			<p class="subtitle">Real-time network metrics</p>
 		</div>
 		<div class="header-right">
 			<ConnectionStatus />
@@ -302,11 +302,7 @@
 	}
 
 	.logo {
-		background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
-		font-weight: 800;
+		font-size: 1.5rem;
 	}
 
 	.subtitle {
