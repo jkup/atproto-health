@@ -38,9 +38,10 @@
 		border: 1px solid rgba(148, 163, 184, 0.1);
 		border-radius: 12px;
 		padding: 1.25rem;
-		height: 100%;
+		max-height: 350px;
 		display: flex;
 		flex-direction: column;
+		overflow: hidden;
 	}
 
 	.feed-header {
@@ -77,7 +78,8 @@
 
 	.feed-list {
 		flex: 1;
-		overflow: hidden;
+		overflow-y: auto;
+		overflow-x: hidden;
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;

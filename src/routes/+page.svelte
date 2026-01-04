@@ -134,14 +134,14 @@
 		/>
 	</section>
 
-	<!-- Activity Chart & Live Feed -->
-	<section class="activity-grid">
-		<div class="chart-section">
-			<ActivityChart />
-		</div>
-		<div class="feed-section">
-			<LiveFeed />
-		</div>
+	<!-- Activity Chart -->
+	<section class="chart-section">
+		<ActivityChart />
+	</section>
+
+	<!-- Live Feed -->
+	<section class="feed-section">
+		<LiveFeed />
 	</section>
 
 	<!-- Network Health -->
@@ -336,16 +336,13 @@
 		gap: 1rem;
 	}
 
-	.activity-grid {
-		display: grid;
-		grid-template-columns: 2fr 1fr;
-		gap: 1rem;
+	.chart-section {
 		margin-top: 1.5rem;
+		min-height: 300px;
 	}
 
-	.chart-section,
 	.feed-section {
-		min-height: 300px;
+		margin-top: 1rem;
 	}
 
 	.content-stats {
@@ -534,10 +531,6 @@
 		.realtime-stats,
 		.health-stats {
 			grid-template-columns: repeat(2, 1fr);
-		}
-
-		.activity-grid {
-			grid-template-columns: 1fr;
 		}
 
 		.content-stats {
