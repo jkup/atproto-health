@@ -1,48 +1,72 @@
 import { writable, derived } from 'svelte/store';
 
-export interface NetworkStats {
+export interface GlobalStats {
+	// From bsky-stats.scroll.blue
 	totalUsers: number | null;
+	totalPosts: number | null;
+	totalLikes: number | null;
+	totalFollows: number | null;
 	growthRate: number | null;
+
+	// From ClearSky
+	activeUsers: number | null;
+	deletedUsers: number | null;
+	totalBlocks: number | null;
+	percentUsersBlocking: number | null;
+	percentUsersBlocked: number | null;
+
+	// Meta
 	lastUpdated: Date | null;
 	loading: boolean;
 	error: string | null;
 }
 
-const initialState: NetworkStats = {
+const initialState: GlobalStats = {
 	totalUsers: null,
+	totalPosts: null,
+	totalLikes: null,
+	totalFollows: null,
 	growthRate: null,
+	activeUsers: null,
+	deletedUsers: null,
+	totalBlocks: null,
+	percentUsersBlocking: null,
+	percentUsersBlocked: null,
 	lastUpdated: null,
 	loading: false,
 	error: null
 };
 
-function createNetworkStore() {
-	const { subscribe, set, update } = writable<NetworkStats>(initialState);
+function createGlobalStatsStore() {
+	const { subscribe, set, update } = writable<GlobalStats>(initialState);
 
 	async function fetchStats() {
 		update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			// Fetch from the public Bluesky API - describe server endpoint
-			const response = await fetch('https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=a&limit=1');
-
-			// We can't get exact user count from public API easily,
-			// so we'll use an estimate based on known data
-			// The actual count can be fetched from bsky.jazco.dev or similar services
-
-			// For now, let's try to get some network info
-			const plcResponse = await fetch('https://plc.directory/export?count=true', {
-				method: 'HEAD'
-			}).catch(() => null);
-
-			// Estimate based on latest known data (~41.5M users as of late 2024)
-			// In production, you'd want to integrate with a stats API
-			const estimatedUsers = 41500000 + Math.floor((Date.now() - new Date('2024-12-01').getTime()) / 1000 * 0.3);
+			// Fetch from both APIs in parallel
+			const [bskyStatsRes, clearSkyUsersRes, clearSkyBlocksRes] = await Promise.all([
+				fetch('https://bsky-stats.scroll.blue').then((r) => r.json()),
+				fetch('https://public.api.clearsky.services/api/v1/anon/total-users').then((r) => r.json()),
+				fetch('https://public.api.clearsky.services/api/v1/anon/lists/block-stats').then((r) => r.json())
+			]);
 
 			update((state) => ({
 				...state,
-				totalUsers: estimatedUsers,
-				growthRate: 0.3, // ~0.3 users per second
+				// bsky-stats data
+				totalUsers: bskyStatsRes.total_users,
+				totalPosts: bskyStatsRes.total_posts,
+				totalLikes: bskyStatsRes.total_likes,
+				totalFollows: bskyStatsRes.total_follows,
+				growthRate: bskyStatsRes.users_growth_rate_per_second,
+
+				// ClearSky data
+				activeUsers: clearSkyUsersRes.data.active_count.value,
+				deletedUsers: clearSkyUsersRes.data.deleted_count.value,
+				totalBlocks: clearSkyBlocksRes.data.numberOfTotalBlocks,
+				percentUsersBlocking: clearSkyBlocksRes.data.percentUsersBlocking,
+				percentUsersBlocked: clearSkyBlocksRes.data.percentUsersBlocked,
+
 				lastUpdated: new Date(),
 				loading: false
 			}));
@@ -55,8 +79,8 @@ function createNetworkStore() {
 		}
 	}
 
-	// Increment user count estimate based on growth rate
-	function startUserCounter() {
+	// Live counter that increments based on growth rate
+	function startLiveCounter() {
 		return setInterval(() => {
 			update((state) => {
 				if (state.totalUsers && state.growthRate) {
@@ -73,14 +97,26 @@ function createNetworkStore() {
 	return {
 		subscribe,
 		fetchStats,
-		startUserCounter
+		startLiveCounter
 	};
 }
 
-export const networkStats = createNetworkStore();
+export const globalStats = createGlobalStatsStore();
 
-// Formatted user count
-export const formattedUserCount = derived(networkStats, ($stats) => {
-	if (!$stats.totalUsers) return '---';
-	return new Intl.NumberFormat('en-US').format(Math.floor($stats.totalUsers));
-});
+// Formatted number helpers
+function formatLargeNumber(n: number | null): string {
+	if (n === null) return '---';
+	if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2) + 'B';
+	if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
+	if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
+	return n.toLocaleString();
+}
+
+// Derived stores for formatted values
+export const formattedTotalUsers = derived(globalStats, ($s) => formatLargeNumber($s.totalUsers));
+export const formattedTotalPosts = derived(globalStats, ($s) => formatLargeNumber($s.totalPosts));
+export const formattedTotalLikes = derived(globalStats, ($s) => formatLargeNumber($s.totalLikes));
+export const formattedTotalFollows = derived(globalStats, ($s) => formatLargeNumber($s.totalFollows));
+export const formattedActiveUsers = derived(globalStats, ($s) => formatLargeNumber($s.activeUsers));
+export const formattedDeletedUsers = derived(globalStats, ($s) => formatLargeNumber($s.deletedUsers));
+export const formattedTotalBlocks = derived(globalStats, ($s) => formatLargeNumber($s.totalBlocks));

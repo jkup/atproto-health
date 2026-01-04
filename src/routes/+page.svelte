@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { jetstream, activityPerSecond, contentStats } from '$lib/stores/jetstream';
 	import {
-		jetstream,
-		activityPerSecond,
-		activityTotal,
-		contentStats
-	} from '$lib/stores/jetstream';
-	import { networkStats, formattedUserCount } from '$lib/stores/network';
+		globalStats,
+		formattedTotalUsers,
+		formattedTotalPosts,
+		formattedTotalLikes,
+		formattedTotalFollows,
+		formattedActiveUsers,
+		formattedDeletedUsers,
+		formattedTotalBlocks
+	} from '$lib/stores/network';
 	import { activityHistory } from '$lib/stores/history';
 
 	import StatCard from '$lib/components/StatCard.svelte';
@@ -18,16 +22,22 @@
 
 	let userCounterInterval: ReturnType<typeof setInterval>;
 	let historyInterval: ReturnType<typeof setInterval>;
+	let refreshInterval: ReturnType<typeof setInterval>;
 
 	onMount(() => {
-		// Connect to Jetstream
+		// Connect to Jetstream for real-time data
 		jetstream.connect();
 
-		// Fetch network stats
-		networkStats.fetchStats();
-		userCounterInterval = networkStats.startUserCounter();
+		// Fetch global stats from APIs
+		globalStats.fetchStats();
+		userCounterInterval = globalStats.startLiveCounter();
 
-		// Record history every second
+		// Refresh global stats every 60 seconds
+		refreshInterval = setInterval(() => {
+			globalStats.fetchStats();
+		}, 60000);
+
+		// Record history every second for the chart
 		historyInterval = setInterval(() => {
 			activityHistory.addPoint($activityPerSecond);
 		}, 1000);
@@ -37,13 +47,8 @@
 		jetstream.disconnect();
 		if (userCounterInterval) clearInterval(userCounterInterval);
 		if (historyInterval) clearInterval(historyInterval);
+		if (refreshInterval) clearInterval(refreshInterval);
 	});
-
-	function formatNumber(n: number): string {
-		if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-		if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-		return n.toLocaleString();
-	}
 </script>
 
 <svelte:head>
@@ -65,37 +70,71 @@
 		</div>
 	</header>
 
+	<!-- Global Network Stats -->
+	<section class="section-title">
+		<h2>Network Totals</h2>
+		<span class="section-subtitle">All-time cumulative statistics</span>
+	</section>
 	<section class="network-stats">
 		<StatCard
 			title="Total Users"
-			value={$formattedUserCount}
-			subtitle="Growing ~0.3/sec"
+			value={$formattedTotalUsers}
+			subtitle="+{$globalStats.growthRate?.toFixed(2) || '0'}/sec"
 			color="#3b82f6"
-			icon="👥"
 		/>
 		<StatCard
-			title="Posts (Session)"
-			value={formatNumber($activityTotal.posts)}
-			subtitle="{$activityPerSecond.posts}/sec"
+			title="Total Posts"
+			value={$formattedTotalPosts}
+			subtitle="All posts ever created"
 			color="#22c55e"
-			icon="📝"
 		/>
 		<StatCard
-			title="Likes (Session)"
-			value={formatNumber($activityTotal.likes)}
-			subtitle="{$activityPerSecond.likes}/sec"
+			title="Total Likes"
+			value={$formattedTotalLikes}
+			subtitle="All likes ever given"
 			color="#ef4444"
-			icon="❤️"
 		/>
 		<StatCard
-			title="Follows (Session)"
-			value={formatNumber($activityTotal.follows)}
-			subtitle="{$activityPerSecond.follows}/sec"
+			title="Total Follows"
+			value={$formattedTotalFollows}
+			subtitle="All follow relationships"
 			color="#a855f7"
-			icon="👤"
 		/>
 	</section>
 
+	<!-- Real-time Activity -->
+	<section class="section-title">
+		<h2>Live Activity</h2>
+		<span class="section-subtitle">Real-time events from the firehose</span>
+	</section>
+	<section class="realtime-stats">
+		<StatCard
+			title="Posts/sec"
+			value={$activityPerSecond.posts.toString()}
+			subtitle="New posts right now"
+			color="#22c55e"
+		/>
+		<StatCard
+			title="Likes/sec"
+			value={$activityPerSecond.likes.toString()}
+			subtitle="Likes happening now"
+			color="#ef4444"
+		/>
+		<StatCard
+			title="Reposts/sec"
+			value={$activityPerSecond.reposts.toString()}
+			subtitle="Reposts right now"
+			color="#f59e0b"
+		/>
+		<StatCard
+			title="Follows/sec"
+			value={$activityPerSecond.follows.toString()}
+			subtitle="New follows right now"
+			color="#a855f7"
+		/>
+	</section>
+
+	<!-- Activity Chart & Live Feed -->
 	<section class="activity-grid">
 		<div class="chart-section">
 			<ActivityChart />
@@ -105,6 +144,60 @@
 		</div>
 	</section>
 
+	<!-- Network Health -->
+	<section class="section-title">
+		<h2>Network Health</h2>
+		<span class="section-subtitle">User status and moderation stats</span>
+	</section>
+	<section class="health-stats">
+		<StatCard
+			title="Active Users"
+			value={$formattedActiveUsers}
+			subtitle="Currently active accounts"
+			color="#22c55e"
+		/>
+		<StatCard
+			title="Deleted Users"
+			value={$formattedDeletedUsers}
+			subtitle="Accounts removed"
+			color="#6b7280"
+		/>
+		<StatCard
+			title="Total Blocks"
+			value={$formattedTotalBlocks}
+			subtitle="Block actions network-wide"
+			color="#ef4444"
+		/>
+		<div class="block-percentages">
+			<h3>Block Distribution</h3>
+			<div class="percentage-row">
+				<span class="percentage-label">Users who block others</span>
+				<div class="percentage-bar-container">
+					<div
+						class="percentage-bar blocking"
+						style="width: {$globalStats.percentUsersBlocking || 0}%"
+					></div>
+				</div>
+				<span class="percentage-value">{$globalStats.percentUsersBlocking?.toFixed(1) || '0'}%</span>
+			</div>
+			<div class="percentage-row">
+				<span class="percentage-label">Users who are blocked</span>
+				<div class="percentage-bar-container">
+					<div
+						class="percentage-bar blocked"
+						style="width: {$globalStats.percentUsersBlocked || 0}%"
+					></div>
+				</div>
+				<span class="percentage-value">{$globalStats.percentUsersBlocked?.toFixed(1) || '0'}%</span>
+			</div>
+		</div>
+	</section>
+
+	<!-- Content Analysis -->
+	<section class="section-title">
+		<h2>Content Analysis</h2>
+		<span class="section-subtitle">Trends from the live firehose</span>
+	</section>
 	<section class="content-stats">
 		<div class="content-card">
 			<TopHashtags />
@@ -136,42 +229,22 @@
 								style="width: {($contentStats.hasImages / total) * 100}%"
 							></div>
 						</div>
+						<div class="media-legend">
+							<span class="legend-item"><span class="dot text"></span> Text</span>
+							<span class="legend-item"><span class="dot image"></span> Images</span>
+						</div>
 					{/if}
 				</div>
 			</div>
 		</div>
 	</section>
 
-	<section class="secondary-stats">
-		<StatCard
-			title="Reposts (Session)"
-			value={formatNumber($activityTotal.reposts)}
-			subtitle="{$activityPerSecond.reposts}/sec"
-			color="#f59e0b"
-			icon="🔄"
-		/>
-		<StatCard
-			title="Blocks (Session)"
-			value={formatNumber($activityTotal.blocks)}
-			subtitle="{$activityPerSecond.blocks}/sec"
-			color="#6b7280"
-			icon="🚫"
-		/>
-		<StatCard
-			title="Total Events"
-			value={formatNumber($activityTotal.total)}
-			subtitle="All activity types"
-			color="#06b6d4"
-			icon="📊"
-		/>
-	</section>
-
 	<footer class="dashboard-footer">
 		<p>
-			Data sourced from
+			Data from
+			<a href="https://bsky-stats.scroll.blue" target="_blank" rel="noopener">bsky-stats</a>,
+			<a href="https://clearsky.app" target="_blank" rel="noopener">ClearSky</a>, and
 			<a href="https://docs.bsky.app/blog/jetstream" target="_blank" rel="noopener">Jetstream</a>
-			&middot; Built with
-			<a href="https://svelte.dev" target="_blank" rel="noopener">SvelteKit</a>
 			&middot;
 			<a href="https://atproto.com" target="_blank" rel="noopener">AT Protocol</a>
 		</p>
@@ -236,18 +309,38 @@
 		margin: 0.25rem 0 0 0;
 	}
 
-	.network-stats {
+	.section-title {
+		margin: 2rem 0 1rem 0;
+		display: flex;
+		align-items: baseline;
+		gap: 1rem;
+	}
+
+	.section-title h2 {
+		font-size: 1rem;
+		font-weight: 600;
+		color: #f1f5f9;
+		margin: 0;
+	}
+
+	.section-subtitle {
+		font-size: 0.75rem;
+		color: #64748b;
+	}
+
+	.network-stats,
+	.realtime-stats,
+	.health-stats {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		gap: 1rem;
-		margin-bottom: 1.5rem;
 	}
 
 	.activity-grid {
 		display: grid;
 		grid-template-columns: 2fr 1fr;
 		gap: 1rem;
-		margin-bottom: 1.5rem;
+		margin-top: 1.5rem;
 	}
 
 	.chart-section,
@@ -259,9 +352,75 @@
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
 		gap: 1rem;
-		margin-bottom: 1.5rem;
 	}
 
+	/* Block percentages card */
+	.block-percentages {
+		background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+		border: 1px solid rgba(148, 163, 184, 0.1);
+		border-radius: 12px;
+		padding: 1.25rem;
+	}
+
+	.block-percentages h3 {
+		font-size: 0.75rem;
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: #94a3b8;
+		margin: 0 0 1rem 0;
+	}
+
+	.percentage-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.percentage-row:last-child {
+		margin-bottom: 0;
+	}
+
+	.percentage-label {
+		font-size: 0.75rem;
+		color: #94a3b8;
+		width: 140px;
+		flex-shrink: 0;
+	}
+
+	.percentage-bar-container {
+		flex: 1;
+		height: 8px;
+		background: rgba(148, 163, 184, 0.1);
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	.percentage-bar {
+		height: 100%;
+		border-radius: 4px;
+		transition: width 0.5s ease;
+	}
+
+	.percentage-bar.blocking {
+		background: linear-gradient(90deg, #f59e0b, #ef4444);
+	}
+
+	.percentage-bar.blocked {
+		background: linear-gradient(90deg, #ef4444, #dc2626);
+	}
+
+	.percentage-value {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: #f1f5f9;
+		width: 50px;
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* Media stats */
 	.media-stats {
 		background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
 		border: 1px solid rgba(148, 163, 184, 0.1);
@@ -319,16 +478,38 @@
 		transition: width 0.3s ease;
 	}
 
-	.secondary-stats {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+	.media-legend {
+		display: flex;
 		gap: 1rem;
-		margin-bottom: 1.5rem;
+		margin-top: 0.5rem;
+	}
+
+	.legend-item {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 0.625rem;
+		color: #64748b;
+	}
+
+	.dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+	}
+
+	.dot.text {
+		background: #3b82f6;
+	}
+
+	.dot.image {
+		background: #22c55e;
 	}
 
 	.dashboard-footer {
 		text-align: center;
 		padding: 1.5rem 0;
+		margin-top: 2rem;
 		border-top: 1px solid rgba(148, 163, 184, 0.1);
 	}
 
@@ -349,7 +530,9 @@
 
 	/* Responsive */
 	@media (max-width: 1200px) {
-		.network-stats {
+		.network-stats,
+		.realtime-stats,
+		.health-stats {
 			grid-template-columns: repeat(2, 1fr);
 		}
 
@@ -360,24 +543,23 @@
 		.content-stats {
 			grid-template-columns: 1fr;
 		}
-
-		.secondary-stats {
-			grid-template-columns: repeat(3, 1fr);
-		}
 	}
 
 	@media (max-width: 768px) {
-		.network-stats {
-			grid-template-columns: 1fr;
-		}
-
-		.secondary-stats {
+		.network-stats,
+		.realtime-stats,
+		.health-stats {
 			grid-template-columns: 1fr;
 		}
 
 		.dashboard-header {
 			flex-direction: column;
 			gap: 1rem;
+		}
+
+		.section-title {
+			flex-direction: column;
+			gap: 0.25rem;
 		}
 	}
 </style>
